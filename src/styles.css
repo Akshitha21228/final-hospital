@@ -807,59 +807,9 @@ textarea:focus {
 }
 
 .quick-action {
-  display: grid;
-  grid-template-columns: 38px 1fr auto;
+  display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 72px;
-  padding: 12px 13px;
-  text-align: left;
-  overflow: hidden;
-}
-
-.quick-action-icon {
-  width: 36px;
-  height: 36px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 36px;
-  border-radius: 10px;
-  background: #eef2ff;
-  color: #4338ca;
-}
-
-.quick-action-icon svg {
-  width: 21px;
-  height: 21px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-.quick-action-copy {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-
-.quick-action-copy strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: normal;
-  line-height: 1.2;
-}
-
-.quick-action-copy small {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.quick-action-arrow {
-  color: var(--muted);
-  font-size: 16px;
-  align-self: start;
 }
 
 .priority-grid {
@@ -2257,45 +2207,6 @@ label {
   font-size: 11px;
   font-weight: 900;
   text-transform: uppercase;
-}
-
-/* Branch Admin reference sidebar: transparent line icons like the approved UI reference. */
-.branch-admin-sidebar .nav-item {
-  color: #ffffff;
-  border-color: transparent;
-  background: transparent;
-}
-.branch-admin-sidebar .nav-item:hover {
-  background: rgba(42, 124, 255, 0.16);
-  border-color: rgba(96, 165, 250, 0.24);
-  color: #ffffff;
-}
-.branch-admin-sidebar .nav-item.active {
-  background: linear-gradient(90deg, rgba(45, 96, 235, 0.95), rgba(79, 70, 229, 0.88));
-  border-color: rgba(96, 165, 250, 0.75);
-  color: #ffffff;
-  box-shadow: inset 3px 0 0 #55d6bd;
-}
-.branch-admin-sidebar .nav-icon {
-  width: 28px;
-  height: 28px;
-  flex-basis: 28px;
-  padding: 0;
-  border-radius: 0;
-  background: transparent;
-  color: currentColor;
-}
-.branch-admin-sidebar .nav-icon svg {
-  width: 22px;
-  height: 22px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-.branch-admin-sidebar .nav-group {
-  color: #60a5fa;
 }
 
 .nav-item {
@@ -4191,35 +4102,3 @@ table td:last-child, table th:last-child { white-space: nowrap; }
 :is(.radiology-sidebar,.mortuary-sidebar) .nurse-avatar{width:52px;height:52px;background:#1859c9;color:#fff;font-weight:850}
 :is(.radiology-sidebar,.mortuary-sidebar) .nurse-scope-copy small{color:#c8d7ec;font-size:12px}
 @media(max-width:900px){.app-shell:has(.radiology-sidebar),.app-shell:has(.mortuary-sidebar){grid-template-columns:1fr}:is(.radiology-sidebar,.mortuary-sidebar){height:auto;margin:10px}}
-
-/* Branch Admin profile card: match the circular avatar treatment used by other role logins. */
-.branch-admin-sidebar .scope-card {
-  min-height: 88px;
-  grid-template-columns: 54px 1fr;
-  align-items: center;
-  gap: 12px;
-  margin-top: 8px;
-  padding: 12px;
-  border: 1px solid rgba(117,170,235,.28);
-  border-radius: 14px;
-  background: linear-gradient(135deg, rgba(20,55,96,.86), rgba(10,36,73,.78));
-  color: #fff;
-}
-.branch-admin-sidebar .scope-card > span:not(.nurse-avatar) { display: none; }
-.branch-admin-sidebar .nurse-avatar {
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 1px solid rgba(255,255,255,.3);
-  background: linear-gradient(145deg,#2563eb,#0b3d91);
-  color: #fff;
-  font-size: 16px;
-  font-weight: 850;
-}
-.branch-admin-sidebar .nurse-scope-copy { min-width: 0; }
-.branch-admin-sidebar .nurse-scope-copy > span { display: none; }
-.branch-admin-sidebar .nurse-scope-copy strong,
-.branch-admin-sidebar .nurse-scope-copy small { color: #fff; }
-.branch-admin-sidebar .nurse-scope-copy small { display: block; opacity: .82; margin-top: 2px; }

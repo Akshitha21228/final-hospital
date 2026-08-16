@@ -499,10 +499,6 @@ function rowRouteButton(label, route, query = {}, className = "inline-link") {
 }
 
 function currentPageTitle(page) {
-  if (currentUser?.role === ROLES.BRANCH_ADMIN) {
-    const item = BRANCH_ADMIN_NAV.find(([key]) => key === page);
-    if (item) return item[1];
-  }
   if(currentUser?.role===ROLES.BRANCH_USER&&/radiology/.test(String(currentUser.jobRole||"").toLowerCase())){const item=RADIOLOGY_NAV.find(([key])=>key===page);if(item)return item[1]}
   if(currentUser?.role===ROLES.BRANCH_USER&&/mortuary/.test(String(currentUser.jobRole||"").toLowerCase())){const item=MORTUARY_NAV.find(([key])=>key===page);if(item)return item[1]}
   if (currentUser?.role === ROLES.BRANCH_USER && /billing|finance/.test(String(currentUser?.jobRole || "").toLowerCase())) {
@@ -532,36 +528,38 @@ function currentPageTitle(page) {
 }
 
 function navIcon(page) {
-  return nurseNavIcon(page);
+  const icons = {
+    dashboard: "D",
+    hospitals: "H",
+    branches: "B",
+    users: "U",
+    accessReview: "Ar",
+    permissionTemplates: "Pt",
+    setup: "S",
+    appointments: "A",
+    patients: "P",
+    queue: "Q",
+    vitals: "V",
+    consultation: "C",
+    lab: "L",
+    pharmacy: "Rx",
+    billing: "$",
+    checkout: "Ck",
+    admissions: "IP",
+    ipdPatient360: "360",
+    stock: "St",
+    purchase: "Po",
+    reports: "R",
+    alerts: "!",
+    tasks: "T",
+    audit: "Au",
+    settings: "Se",
+    productFlow: "Pf",
+    backup: "Bk",
+    globalSearch: "G"
+  };
+  return icons[page] || page.slice(0, 1).toUpperCase();
 }
-
-const BRANCH_ADMIN_NAV = [
-  ["dashboard", "Dashboard", "Overview"],
-  ["appointments", "Appointments", "Patient Operations"],
-  ["patients", "Patients", "Patient Operations"],
-  ["queue", "Queue", "Patient Operations"],
-  ["admissions", "Admissions", "Patient Operations"],
-  ["checkout", "Checkout", "Patient Operations"],
-  ["followups", "Follow-ups", "Patient Operations"],
-  ["lab", "Lab", "Clinical Operations"],
-  ["radiology", "Radiology", "Clinical Operations"],
-  ["pharmacy", "Pharmacy", "Clinical Operations"],
-  ["emergency", "Emergency", "Clinical Operations"],
-  ["ot", "Operation Theatre", "Clinical Operations"],
-  ["ipd", "IPD Patients", "IPD"],
-  ["wards", "Wards & Beds", "IPD"],
-  ["discharge", "Discharges", "IPD"],
-  ["ipdAlerts", "IPD Alerts", "IPD"],
-  ["users", "Staff Users", "Staff"],
-  ["doctorSchedule", "Doctor Schedule", "Staff"],
-  ["staffRoster", "Duty Roster", "Staff"],
-  ["billing", "Billing", "Finance"],
-  ["finance", "Collections", "Finance"],
-  ["reports", "Finance Reports", "Finance"],
-  ["inventory", "Inventory", "Inventory"],
-  ["stock", "Low Stock", "Inventory"],
-  ["purchase", "Purchase Orders", "Inventory"]
-];
 
 const NURSE_NAV = [
   ["dashboard", "Dashboard", "Overview"],
@@ -693,55 +691,25 @@ function nurseNavIcon(page) {
     ,"mortuary-intake": '<path d="M4 21V5l8-3 8 3v16M9 21v-5h6v5"/>'
     ,"mortuary-storage": '<path d="M3 5h18v14H3zM3 10h18M8 5v14M16 5v14"/>'
     ,"mortuary-release": '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="m7 12 3 3 7-7"/>'
-    ,"mortuary-search": '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>',
-    hospitals: '<path d="M3 21V5l9-3 9 3v16M8 21v-5h8v5M8 8h2M14 8h2M8 12h2M14 12h2"/>',
-    branches: '<path d="M4 21V4h10v17M14 9h6v12M7 8h4M7 12h4M7 16h4M17 13h1M17 17h1"/>',
-    users: '<circle cx="9" cy="8" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M17 5a4 4 0 0 1 0 6M19 15a5 5 0 0 1 3 4v2"/>',
-    accessReview: '<path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="m15 16 2 2 4-4"/>',
-    permissionTemplates: '<path d="M6 3h12v18H6zM9 7h6M9 11h6M9 15h4"/>',
-    setup: '<path d="M4 5h16M4 12h16M4 19h16"/><circle cx="9" cy="5" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="19" r="2"/>',
-    radiology: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v5M12 15v5M4 12h5M15 12h5"/>',
-    emr: '<path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4"/>',
-    ipd: '<path d="M4 21V5l8-3 8 3v16M8 21v-5h8v5M9 8h2M13 8h2M9 12h2M13 12h2"/>',
-    wards: '<path d="M3 18v-6h18v6M5 12V9h6v3M13 12V9h6v3M5 18v3M19 18v3"/>',
-    doctorSchedule: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M8 3v4M16 3v4M3 10h18M8 14h3M13 14h3"/>',
-    staffRoster: '<path d="M4 5h16v14H4zM8 9h8M8 13h5"/><circle cx="17" cy="16" r="2"/>',
-    discharge: '<path d="M4 3h12v18H4zM16 12h5M18 9l3 3-3 3M8 7h5M8 11h5M8 15h3"/>',
-    ot: '<path d="M4 21V5h16v16M8 9h8M8 13h5M12 21v-4"/><path d="M18 2v4M16 4h4"/>',
-    ipdAlerts: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
-    finance: '<path d="M4 19V5h16v14M8 15v-3M12 15V8M16 15v-5"/>',
-    inventory: '<path d="M4 7l8-4 8 4v10l-8 4-8-4zM4 7l8 4 8-4M12 11v10"/>',
-    purchase: '<path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="M17 16v4M15 18h4"/>',
-    audit: '<path d="M5 3h14v18H5zM8 7h8M8 11h8M8 15h5"/>',
-    compliance: '<path d="M12 2l8 4v6c0 5-3 8-8 10-5-2-8-5-8-10V6zM9 12l2 2 4-5"/>',
-    backup: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
-    productFlow: '<circle cx="5" cy="12" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 11 10-4M7 13l10 4"/>',
-    masterData: '<path d="M4 5h16v14H4zM8 9h8M8 13h5"/><path d="M17 16v4M15 18h4"/>',
-    settings: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2 2-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21h-3v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1-2-2 .1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H5v-3h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1 2-2 .1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V5h3v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1 2 2-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1v3h-.1a1.7 1.7 0 0 0-1.5 1Z"/>',
-    profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
-    globalSearch: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
-    financeReports: '<path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7"/>',
-    ipdReports: '<path d="M5 20V10h4v10M10 20V4h4v16M15 20v-7h4v7"/>',
-    records: '<path d="M6 2h9l4 4v16H6zM14 2v5h5M9 12h7M9 16h7"/>',
-    notifications: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>'
+    ,"mortuary-search": '<circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/>'
   };
   return `<svg aria-hidden="true" viewBox="0 0 24 24">${paths[page] || '<circle cx="12" cy="12" r="9"/>'}</svg>`;
 }
 
 function actionIcon(name = "") {
   const key = String(name || "").toLowerCase();
-  if (/add|create|register|book|new/.test(key)) return "＋";
-  if (/edit|review|clone|duplicate/.test(key)) return "✎";
-  if (/delete|disable|clear|close|remove|deactivate/.test(key)) return "⌫";
-  if (/refresh|provider|sync|run/.test(key)) return "↻";
-  if (/open|view|search|records/.test(key)) return "↗";
-  if (/read|mark|complete|check|acknowledge|approve|finalize/.test(key)) return "✓";
-  if (/bill|payment|receipt|collect|generate bill/.test(key)) return "₹";
-  if (/lab|radiology|report|upload/.test(key)) return "◫";
-  if (/medicine|mar|pharmacy|stock/.test(key)) return "✚";
-  if (/alert|warning|risk/.test(key)) return "⚠";
-  if (/print|export|download/.test(key)) return "⇩";
-  return "›";
+  if (/add|create|register|book|new/.test(key)) return "+";
+  if (/edit|review|clone|duplicate/.test(key)) return "E";
+  if (/delete|disable|clear|close|remove|deactivate/.test(key)) return "x";
+  if (/refresh|provider|sync|run/.test(key)) return "R";
+  if (/open|view|search|records/.test(key)) return "->";
+  if (/read|mark|complete|check|acknowledge|approve|finalize/.test(key)) return "OK";
+  if (/bill|payment|receipt|collect|generate bill/.test(key)) return "$";
+  if (/lab|radiology|report|upload/.test(key)) return "R";
+  if (/medicine|mar|pharmacy|stock/.test(key)) return "Rx";
+  if (/alert|warning|risk/.test(key)) return "!";
+  if (/print|export|download/.test(key)) return "P";
+  return ">";
 }
 
 function iconLabel(icon, label, hiddenLabel = true) {
@@ -1255,10 +1223,9 @@ function renderShell(page, options = {}) {
   const isRadiology=currentUser.role===ROLES.BRANCH_USER&&/radiology/.test(doctorRole);
   const isMortuary=currentUser.role===ROLES.BRANCH_USER&&/mortuary/.test(doctorRole);
   const isSurgeon = doctorRole === "surgeon";
-  const isBranchAdmin = currentUser.role === ROLES.BRANCH_ADMIN;
-  const roleNav = isBranchAdmin ? BRANCH_ADMIN_NAV : isNurse ? NURSE_NAV : isReception ? RECEPTION_NAV : isDoctor ? DOCTOR_NAV : isPharmacy ? PHARMACY_NAV : isBilling ? BILLING_NAV : isLab ? LAB_NAV : isRadiology ? RADIOLOGY_NAV : isMortuary ? MORTUARY_NAV : (NAV_BY_ROLE[currentUser.role] || []).map(([key, label]) => [key, label, null]);
+  const roleNav = isNurse?NURSE_NAV:isReception?RECEPTION_NAV:isDoctor?DOCTOR_NAV:isPharmacy?PHARMACY_NAV:isBilling?BILLING_NAV:isLab?LAB_NAV:isRadiology?RADIOLOGY_NAV:isMortuary?MORTUARY_NAV:(NAV_BY_ROLE[currentUser.role]||[]).map(([key,label])=>[key,label,null]);
   const nav = roleNav.filter(([key, _label, group]) => canAccessPage(currentUser, key) && (group !== "Surgery" || isSurgeon));
-  const premiumRoleShell = isBranchAdmin || isNurse || isReception || isDoctor || isPharmacy || isBilling || isLab || isRadiology || isMortuary;
+  const premiumRoleShell=isNurse||isReception||isDoctor||isPharmacy||isBilling||isLab||isRadiology||isMortuary;
   const branchOptions = hasPermission(currentUser, "branches", "view") ? safeData(() => api.branches(currentUser)) : [];
   const hospitalOptions = hasPermission(currentUser, "hospitals", "view") ? safeData(() => api.hospitals(currentUser)) : [];
   const notificationItems = hasPermission(currentUser, "notifications", "view") ? mergeNotifications() : [];
@@ -1270,7 +1237,7 @@ function renderShell(page, options = {}) {
 
   app.innerHTML = `
     <div class="app-shell">
-      <aside class="sidebar ${isBranchAdmin ? "branch-admin-sidebar" : isNurse ? "nurse-sidebar" : isReception ? "reception-sidebar" : isDoctor ? "doctor-sidebar" : isPharmacy ? "pharmacy-sidebar" : isBilling ? "billing-sidebar" : isLab ? "lab-sidebar" : isRadiology ? "radiology-sidebar" : isMortuary ? "mortuary-sidebar" : ""}">
+      <aside class="sidebar ${isNurse ? "nurse-sidebar" : isReception ? "reception-sidebar" : isDoctor ? "doctor-sidebar" : isPharmacy ? "pharmacy-sidebar" : isBilling ? "billing-sidebar" : isLab ? "lab-sidebar" : isRadiology ? "radiology-sidebar" : isMortuary ? "mortuary-sidebar" : ""}">
         <div class="logo-block">
           <div class="brand-mark">H</div>
           <div>
@@ -1282,25 +1249,25 @@ function renderShell(page, options = {}) {
           ${nav.map(([key, label, roleGroup], index) => `
             ${(premiumRoleShell ? roleGroup !== nav[index - 1]?.[2] ? roleGroup : "" : navGroupLabel(key, nav[index - 1]?.[0])) ? `<span class="nav-group">${escapeHtml(premiumRoleShell ? roleGroup : navGroupLabel(key, nav[index - 1]?.[0]))}</span>` : ""}
             <button class="nav-item ${page === key ? "active" : ""}" type="button" data-route="${key}" title="${escapeHtml(label)}" data-testid="sidebar-${escapeHtml(key)}">
-              <span class="nav-icon">${navIcon(key)}</span><span>${escapeHtml(label)}</span>
+              <span class="nav-icon">${premiumRoleShell ? nurseNavIcon(key) : escapeHtml(navIcon(key))}</span><span>${escapeHtml(label)}</span>
             </button>
           `).join("")}
         </nav>
         <div class="scope-card">
-          ${premiumRoleShell ? `<span class="nurse-avatar" aria-hidden="true">${isBranchAdmin ? "BA" : isNurse ? "N" : isReception ? "R" : isDoctor ? "Dr" : isPharmacy ? "Rx" : isBilling ? "B" : isLab ? "L" : isRadiology ? "R" : "M"}</span><div class="nurse-scope-copy">` : ""}
-          <span>${escapeHtml(isBranchAdmin ? "Branch Admin" : isDoctor ? currentUser.jobRole : isPharmacy ? "Pharmacist" : isBilling ? "Billing / Finance" : isLab ? "Laboratory" : isRadiology ? "Radiology" : isMortuary ? "Mortuary" : roleLabels[currentUser.role])}</span>
-          <strong>${escapeHtml(isBranchAdmin ? currentUser.name || "Branch Admin" : isNurse ? "Nurse" : isReception ? currentUser.name || "Receptionist" : isDoctor ? currentUser.name || "Doctor" : isPharmacy ? currentUser.name || "Pharmacy User" : isBilling ? currentUser.name || "Billing User" : isLab ? currentUser.name || "Lab User" : isRadiology ? currentUser.name || "Radiology User" : isMortuary ? currentUser.name || "Mortuary Officer" : scopeDescription(currentUser))}</strong>
-          <small>${escapeHtml(isBranchAdmin ? "Assigned branch access" : isNurse ? "Assigned ward / unit access" : isReception ? "Front Desk" : isDoctor ? currentUser.department || "Clinical Department" : isPharmacy ? currentUser.pharmacyName || "Pharmacist" : isBilling ? "Billing / Finance" : isLab ? "Laboratory" : isRadiology ? "Radiology" : isMortuary ? "Mortuary" : hospital?.name || "All hospitals")}${!premiumRoleShell && branchContext ? ` / ${escapeHtml(branchContext)}` : ""}</small>
-          ${premiumRoleShell ? `<small>${escapeHtml(isBranchAdmin ? "Main Branch" : isNurse ? "Assigned branch only" : currentUser.branchName || "Assigned Branch")}</small></div>` : ""}
+          ${premiumRoleShell?`<span class="nurse-avatar" aria-hidden="true">${isNurse?"N":isReception?"R":isDoctor?"Dr":isPharmacy?"Rx":isBilling?"B":isLab?"L":isRadiology?"R":"M"}</span><div class="nurse-scope-copy">`:""}
+          <span>${escapeHtml(isDoctor?currentUser.jobRole:isPharmacy?"Pharmacist":isBilling?"Billing / Finance":isLab?"Laboratory":isRadiology?"Radiology":isMortuary?"Mortuary":roleLabels[currentUser.role])}</span>
+          <strong>${escapeHtml(isNurse?"Nurse":isReception?currentUser.name||"Receptionist":isDoctor?currentUser.name||"Doctor":isPharmacy?currentUser.name||"Pharmacy User":isBilling?currentUser.name||"Billing User":isLab?currentUser.name||"Lab User":isRadiology?currentUser.name||"Radiology User":isMortuary?currentUser.name||"Mortuary Officer":scopeDescription(currentUser))}</strong>
+          <small>${escapeHtml(isNurse?"Assigned ward / unit access":isReception?"Front Desk":isDoctor?currentUser.department||"Clinical Department":isPharmacy?currentUser.pharmacyName||"Pharmacist":isBilling?"Billing / Finance":isLab?"Laboratory":isRadiology?"Radiology":isMortuary?"Mortuary":hospital?.name||"All hospitals")}${!premiumRoleShell&&branchContext?` / ${escapeHtml(branchContext)}`:""}</small>
+          ${premiumRoleShell ? `<small>${escapeHtml(isNurse ? "Assigned branch only" : currentUser.branchName || "Assigned Branch")}</small></div>` : ""}
         </div>
       </aside>
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">${escapeHtml(isBranchAdmin ? "BRANCH ADMIN" : isDoctor ? currentUser.jobRole.toUpperCase() : isPharmacy ? "PHARMACY" : isBilling ? "BILLING" : isLab ? "LAB" : isRadiology ? "RADIOLOGY" : isMortuary ? "MORTUARY" : roleLabels[currentUser.role])}</p>
+            <p class="eyebrow">${escapeHtml(isDoctor ? currentUser.jobRole.toUpperCase() : isPharmacy ? "PHARMACY" : isBilling ? "BILLING" : isLab ? "LAB" : isRadiology ? "RADIOLOGY" : isMortuary ? "MORTUARY" : roleLabels[currentUser.role])}</p>
             <h1 data-testid="page-title">${escapeHtml(options.forceUnauthorized ? "Access blocked" : currentPageTitle(page))}</h1>
             <div class="context-row">
-              <span>${escapeHtml(isDoctor && page === "notifications" ? "Main Branch" : isBranchAdmin || isPharmacy || isBilling || isLab || isRadiology || isMortuary ? currentUser.branchName || branch?.name || "Main Branch" : hospital?.name || "All hospitals")}</span>
+              <span>${escapeHtml(isPharmacy||isBilling||isLab||isRadiology||isMortuary?currentUser.branchName||branch?.name||"Main Branch":hospital?.name||"All hospitals")}</span>
               ${branch ? `<span>${escapeHtml(branchType)}</span><span>${escapeHtml(branch.name)}</span>` : ""}
               <span>${environmentLabel}</span>
             </div>
@@ -2409,13 +2376,10 @@ function quickActionsPanel(role) {
       </div>
       <div class="quick-grid">
         ${(actionsByRole[role] || []).filter(([, route]) => canAccessPage(currentUser, route)).map(([label, route]) => `
-          <button class="quick-action" type="button" data-route="${route}" aria-label="${escapeHtml(label)}">
-            <span class="quick-action-icon">${navIcon(route)}</span>
-            <span class="quick-action-copy">
-              <strong>${escapeHtml(label)}</strong>
-              <small>${escapeHtml(actionIcon(label))}</small>
-            </span>
-            <span class="quick-action-arrow" aria-hidden="true">↗</span>
+          <button class="quick-action" type="button" data-route="${route}">
+            <span class="nav-icon">${escapeHtml(navIcon(route))}</span>
+            <strong>${escapeHtml(label)}</strong>
+            <small>${escapeHtml(actionIcon(label))}</small>
           </button>
         `).join("") || emptyState("No quick actions assigned for this role.")}
       </div>
@@ -2478,25 +2442,15 @@ function metricCard(label, value, note) {
     : /^-?\d+(\.\d+)?$/.test(String(value || "").trim())
       ? Number(value)
       : null;
-  const key = String(label || "").toLowerCase();
-  const badgeLetter = key.includes("pharmacy") ? "Rx"
-    : key.includes("today appointments") ? "T"
-    : key.includes("waiting") ? "W"
-    : key.includes("consultation") ? "I"
-    : key.includes("pending bills") ? "P"
-    : key.includes("lab") ? "L"
-    : key.includes("patient") ? "P"
-    : key.includes("average") ? "A"
-    : key.includes("bed") ? "B"
-    : key.includes("staff") ? "S"
-    : key.includes("alert") ? "A"
-    : key.includes("task") ? "T"
-    : String(label || "?").trim().charAt(0).toUpperCase() || "?";
   return `
     <article class="metric-card">
-      <div class="metric-top"><span>${escapeHtml(label)}</span><i class="metric-letter" aria-hidden="true">${escapeHtml(badgeLetter)}</i></div>
+      <div class="metric-top">
+        <span>${escapeHtml(label)}</span>
+        <i>${escapeHtml(navIcon(label.split(" ")[0].toLowerCase()))}</i>
+      </div>
       <strong ${numericValue !== null ? `data-countup="${escapeAttribute(numericValue)}"` : ""}>${escapeHtml(value)}</strong>
       <small>${escapeHtml(note)}</small>
+      <em>${escapeHtml(metricTrend(label, value))}</em>
     </article>
   `;
 }
@@ -2827,9 +2781,10 @@ function documentTypeOptions(types = []) {
 function documentUploadPanel({ patientId = "", admissionId = "", relatedModule = "documents", types = [], title = "Upload Document" } = {}) {
   const storage = fileStorageStatus();
   if (!storage.configured) {
-    // Keep the storage state internal; do not render a configuration warning panel.
-    // Document uploads remain unavailable until storage is configured.
-    return "";
+    const missing = Array.isArray(storage.missing) && storage.missing.length
+      ? `<div class="notice subtle"><strong>Required environment variables</strong><div class="env-chip-row">${storage.missing.map((item) => `<span class="file-chip">${escapeHtml(item)}</span>`).join("")}</div></div>`
+      : "";
+    return `<section class="panel state-panel" data-testid="file-storage-unconfigured"><div class="empty error-state"><span class="empty-icon error-icon" aria-hidden="true">!</span><strong>Storage not configured</strong><small>Cloudflare R2 must be configured before document uploads are enabled.</small>${missing}<small>Upload disabled until configured.</small></div></section>`;
   }
   if (!hasPermission(currentUser, "documents", "create") || (relatedModule !== "documents" && !hasPermission(currentUser, relatedModule, "create"))) return "";
   return `
@@ -5638,35 +5593,9 @@ document.addEventListener("submit", async (event) => {
   }
 });
 
-document.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  const target = event.target.closest?.("[data-route], [data-action], [data-patient-filter], [data-admission-filter]");
-  if (!target) return;
-  if (target.matches("button, a, input, select, textarea")) return;
-  event.preventDefault();
-  target.click();
-});
-
-function emptyStateCreateAction(page) {
-  const map = {
-    dashboard: "register-patient", appointments: "create-appointment", patients: "register-patient", queue: "create-appointment",
-    admissions: "create-admission", billing: "generate-bill", finance: "generate-bill", stock: "add-stock", inventory: "add-stock",
-    purchase: "create-purchase-request", doctorSchedule: "create-doctor-schedule", staffRoster: "create-staff-roster", emergency: "create-emergency",
-    ot: "schedule-surgery", radiology: "order-radiology", mortuary: "register-death", permissionTemplates: "create-permission-template",
-    masterData: "create-master-data", subscriptions: "create-subscription", offers: "create-offer", tasks: "create-task", followups: "book-followup",
-    vitals: "record-vitals", ipdVitals: "record-ipd-vitals", dailySheets: "add-daily-sheet", dutyDoctor: "add-duty-note", nursing: "add-nursing-note",
-    intakeOutput: "add-intake-output", handover: "add-handover-note", documents: "upload-document", feedback: "submit-feedback",
-    "lab-samples": "create-master-data", "lab-processing": "create-master-data", "lab-results": "create-master-data",
-    "radiology-scheduling": "order-radiology", "radiology-queue": "order-radiology", "radiology-imaging": "order-radiology",
-    wards: "create-ward", ipd: "create-admission",
-  };
-  return map[page] || null;
-}
-
 document.addEventListener("click", async (event) => {
   const target = event.target.closest("button, a");
-  const delegatedTarget = target || event.target.closest?.("[data-route], [data-action], [data-patient-filter], [data-admission-filter]");
-  if (!delegatedTarget) {
+  if (!target) {
     const row = event.target.closest("tr[data-route]");
     if (!row) return;
     if (event.target.closest("button, a, input, select, textarea, label")) return;
@@ -5676,22 +5605,6 @@ document.addEventListener("click", async (event) => {
     if (patientId) selectedPatientId = patientId;
     notificationsDrawerOpen = false;
     setPage(row.dataset.route, { patientId, admissionId, tab });
-    return;
-  }
-
-  if (delegatedTarget.dataset.action === "empty-state-add") {
-    event.preventDefault();
-    event.stopPropagation();
-    const page = String(delegatedTarget.dataset.emptyPage || pageFromHash() || "dashboard");
-    // Doctor Notifications is system-generated and must never expose an add action.
-    if (currentUser?.role === ROLES.BRANCH_USER && /^(doctor|surgeon)$/.test(String(currentUser?.jobRole || "").toLowerCase()) && page === "notifications") return;
-    const formAction = emptyStateCreateAction(page);
-    if (!formAction || !createForm(formAction)) {
-      toast("There is no add form available for this section.", "error");
-      return;
-    }
-    createTarget = formAction;
-    render();
     return;
   }
 
@@ -5709,29 +5622,29 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
-  if (handleNursePatientClick(delegatedTarget)) return;
+  if (handleNursePatientClick(target)) return;
 
-  if (delegatedTarget.dataset.route) {
-    const patientId = delegatedTarget.dataset.patientId;
-    const admissionId = delegatedTarget.dataset.admissionId;
-    const tab = delegatedTarget.dataset.tab;
-    if (delegatedTarget.dataset.notification && hasPermission(currentUser, "notifications", "edit")) {
-      await api.markNotificationRead(currentUser, delegatedTarget.dataset.notification).catch(() => null);
+  if (target.dataset.route) {
+    const patientId = target.dataset.patientId;
+    const admissionId = target.dataset.admissionId;
+    const tab = target.dataset.tab;
+    if (target.dataset.notification && hasPermission(currentUser, "notifications", "edit")) {
+      await api.markNotificationRead(currentUser, target.dataset.notification).catch(() => null);
     }
     if (patientId) selectedPatientId = patientId;
     notificationsDrawerOpen = false;
-    setPage(delegatedTarget.dataset.route, { patientId, admissionId, tab });
+    setPage(target.dataset.route, { patientId, admissionId, tab });
     return;
   }
 
-  const action = delegatedTarget.dataset.action;
-  if (delegatedTarget.dataset.patientFilter) {
-    setPatientStatusFilter(delegatedTarget.dataset.patientFilter);
+  const action = target.dataset.action;
+  if (target.dataset.patientFilter) {
+    setPatientStatusFilter(target.dataset.patientFilter);
     render();
     return;
   }
-  if (delegatedTarget.dataset.admissionFilter) {
-    setAdmissionStatusFilter(delegatedTarget.dataset.admissionFilter);
+  if (target.dataset.admissionFilter) {
+    setAdmissionStatusFilter(target.dataset.admissionFilter);
     render();
     return;
   }

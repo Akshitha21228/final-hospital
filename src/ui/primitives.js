@@ -6,14 +6,6 @@ export function badge(label, className) {
 
 export function emptyState(message) {
   const lower = String(message || "").toLowerCase();
-  const currentPage = typeof window !== "undefined" ? String(window.location.hash || "").replace(/^#\/?/, "").split(/[?&]/)[0] : "";
-  const pageKey = currentPage || "dashboard";
-  const addablePages = new Set([
-    "dashboard", "appointments", "patients", "queue", "admissions", "billing", "finance", "stock", "inventory", "purchase",
-    "doctorSchedule", "staffRoster", "emergency", "ot", "radiology", "mortuary", "permissionTemplates", "masterData", "subscriptions", "offers",
-    "tasks", "followups", "vitals", "ipdVitals", "dailySheets", "dutyDoctor", "nursing", "intakeOutput", "handover", "documents", "feedback", "wards", "ipd"
-  ]);
-  const showAdd = addablePages.has(pageKey);
   const suggestion =
     lower.includes("handover") ? "Create handover to capture the next shift plan clearly." :
     lower.includes("purchase") ? "Create purchase request when stock needs replenishment." :
@@ -25,7 +17,7 @@ export function emptyState(message) {
     "Use the primary action on this page when you are ready to add the first record.";
   return `
     <div class="empty">
-      ${showAdd ? `<button class="empty-icon empty-add-button" type="button" data-action="empty-state-add" data-empty-page="${escapeHtml(pageKey)}" aria-label="Add record">+</button>` : ""}
+      <span class="empty-icon" aria-hidden="true">+</span>
       <strong>${escapeHtml(message)}</strong>
       <small>${escapeHtml(suggestion)}</small>
     </div>

@@ -124,13 +124,26 @@ export function alertsPage() {
 }
 
 export function tasksPage() {
+  const tasks = api.tasks(currentUser);
+  const derived = deriveTasks();
   return `
-    <section class="panel automation-panel">
+    ${automationList("Derived Task Cards", "Lightweight task cards generated from workflow records. They do not create duplicate backend tasks.", derived)}
+    <section class="panel">
       <div class="panel-head">
-        <div><h3>My Tasks</h3><p>Assigned operational work for your current role.</p></div>
-        <span class="badge status-active">0 visible</span>
+        <div><h3>Tasks</h3><p>Assigned work and follow-up actions. Create tasks from here or from alerts.</p></div>
+        <div class="button-row"><span class="badge status-active">${tasks.length} visible</span>${gridAddButton("Task", "create-task")}</div>
       </div>
-      ${emptyState("No pending work is visible for your role.")}
+      ${tasks.length ? table(["Task", "Assigned To", "Priority", "Due", "Status", "Actions"], tasks.map((task) => [
+        task.title,
+        task.assignedTo,
+        badge(task.priority, riskClass(task.priority)),
+        task.due,
+        badge(task.status, statusClass(task.status)),
+        `<div class="grid-actions">
+          ${hasPermission(currentUser, "tasks", "edit") ? `<button class="icon-button" data-action="complete-task" data-task="${task.id}">Complete</button>` : ""}
+          ${gridActions("tasks", task.id)}
+        </div>`
+      ])) : emptyState("No saved tasks are assigned. Derived workflow cards above still show operational work when available.")}
     </section>
   `;
 }
@@ -238,31 +251,22 @@ export function claimsPage() {
 export function notificationsPage() {
   const notifications = mergeNotifications();
   const derived = notifications.filter((item) => item.source === "Derived");
-  const isDoctor = /^(doctor|surgeon)$/.test(String(currentUser?.jobRole || "").toLowerCase());
-  const notificationEmptyState = (message) => `<div class="empty"><strong>${escapeHtml(message)}</strong></div>`;
-  const workflowSection = isDoctor && !derived.length
-    ? `
-      <section class="panel automation-panel">
-        <div class="panel-head">
-          <div><h3>Workflow Notifications</h3><p>Derived from pending records, ready reports, unpaid bills, document uploads, access review, and provider status.</p></div>
-          <span class="badge status-active">0 visible</span>
-        </div>
-        ${notificationEmptyState("No workflow notifications are visible right now.")}
-      </section>
-    `
-    : automationList("Workflow Notifications", "Derived from pending records, ready reports, unpaid bills, document uploads, access review, and provider status.", derived, "No workflow notifications are visible right now.");
   return `
-    ${workflowSection}
+    ${automationList("Workflow Notifications", "Derived from pending records, ready reports, unpaid bills, document uploads, access review, and provider status.", derived, "No workflow notifications are visible right now.")}
     <section class="panel">
       <div class="panel-head"><h3>Notifications</h3><p>In-app notifications are active. External delivery uses configured production providers when enabled.</p></div>
       ${hasPermission(currentUser, "notifications", "edit") ? `<div class="button-row"><button class="button small soft" type="button" data-action="mark-all-notifications-read">Mark all as read</button><button class="button small soft" type="button" data-action="clear-read-notifications">Clear all read</button></div>` : ""}
       ${notifications.length ? table(["Category", "Priority", "Title", "Message", "Channel", "Linked", "Created", "Status", "Action"], notifications.map((item) => [
         item.category || item.type || item.module || "Notification",
         badge(String(item.priority || "info").toUpperCase(), riskClass(item.priority || "info")),
-        item.title, item.message, item.channel || item.source || "-", item.linkedRecord || item.route || "-", item.createdAt || item.time || "-",
+        item.title,
+        item.message,
+        item.channel || item.source || "-",
+        item.linkedRecord || item.route || "-",
+        item.createdAt || item.time || "-",
         badge(item.status || (item.read ? "Read" : "Unread"), item.read ? "status-active" : "status-pending"),
         `<div class="grid-actions">${canAccessPage(currentUser, item.route || "notifications") ? `<button class="button tiny soft" title="Open" aria-label="Open" data-route="${escapeHtml(item.route || "notifications")}" data-notification="${escapeHtml(item.id || "")}" ${item.patientId ? `data-patient-id="${escapeHtml(item.patientId)}"` : ""} ${item.admissionId ? `data-admission-id="${escapeHtml(item.admissionId)}"` : ""}>${iconLabel(actionIcon("open"), "Open")}</button>` : ""}${!item.read && hasPermission(currentUser, "notifications", "edit") && item.source !== "Derived" ? `<button class="button tiny" title="Mark read" aria-label="Mark read" data-action="mark-notification-read" data-notification="${item.id}">${iconLabel(actionIcon("mark read"), "Mark read")}</button>` : ""}</div>`
-      ])) : (isDoctor ? notificationEmptyState("No saved notifications are visible for this scope.") : emptyState("No saved notifications are visible for this scope."))}
+      ])) : emptyState("No saved notifications are visible for this scope.")}
     </section>
   `;
 }
