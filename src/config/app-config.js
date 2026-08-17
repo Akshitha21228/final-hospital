@@ -130,7 +130,7 @@ export const USER_PERMISSION_GROUPS = [
 ];
 
 export const USER_ROLE_PRESETS = {
-  "Reception User": ["dashboard", "appointments", "patients", "queue", "admissions", "billing", "checkout", "followups", "notifications", "globalSearch", "records", "tasks", "alerts"],
+  "Reception User": ["dashboard", "patients", "admissions", "billing"],
   Doctor: ["dashboard", "patients", "queue", "consultation", "vitals", "lab", "radiology", "pharmacy", "admissions", "deathSummary", "reports", "alerts", "tasks"],
   "Duty Doctor": ["dashboard", "ipd", "ipdPatient360", "dailySheets", "dutyDoctor", "ipdVitals", "handover", "discharge", "alerts", "tasks"],
   Nurse: ["dashboard", "patients", "queue", "vitals", "ipd", "ipdPatient360", "wards", "dailySheets", "nursing", "mar", "ipdVitals", "intakeOutput", "tasks", "alerts"],
@@ -147,7 +147,7 @@ export const USER_ROLE_PRESETS = {
 };
 
 export const USER_ROLE_MODULES = {
-  "Reception User": ["Appointments", "Patient Flow", "Admissions", "Billing", "Checkout", "Follow-ups", "Notifications", "Global Search", "Tasks", "Alerts"],
+  "Reception User": ["Patient Flow", "Admissions", "Billing"],
   Doctor: ["Patient Flow", "Consultation", "Vitals", "Lab", "Radiology", "Pharmacy", "Admissions", "Death Summary", "Reports", "Alerts", "Tasks"],
   "Duty Doctor": ["IPD", "IPD Patient 360", "Daily Sheets", "Duty Doctor", "IPD Vitals", "Handover", "Discharge", "Alerts", "Tasks"],
   Nurse: ["Patient Flow", "Queue", "OPD Vitals", "IPD", "IPD Patient 360", "Wards / Beds", "Daily Sheets", "IPD Nursing", "MAR", "IPD Vitals", "Intake / Output", "Alerts", "Tasks"],

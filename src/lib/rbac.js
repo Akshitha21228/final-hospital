@@ -28,6 +28,7 @@ const ROLE_ALIASES = {
   "lab user": "Lab User",
   reception: "Reception",
   "reception user": "Reception",
+  receptionist: "Reception",
   doctor: "Doctor"
 };
 
@@ -290,6 +291,17 @@ export const ROLE_PERMISSIONS = {
 };
 
 export const PAGE_KEY_ALIASES = {
+  registerPatient: "patients",
+  "reception-register-patient": "patients",
+  patientRecords: "patients",
+  "reception-patient-records": "patients",
+  admitPatient: "admissions",
+  "reception-admit-patient": "admissions",
+  admissionRecords: "admissions",
+  "reception-admission-records": "admissions",
+  createInvoice: "billing",
+  payments: "billing",
+  receipts: "billing",
   stocklogic: "stock",
   "stock-logic": "stock",
   "stock logic": "stock",
@@ -669,6 +681,12 @@ export function can(user, module, action = "view") {
   const normalizedModule = normalizeModule(module);
   const normalizedAction = normalizeAction(action);
   if (role === ROLES.BRANCH_USER) {
+    if (normalizeSubRoleName(user) === "Reception") {
+      const receptionModules = new Set(["dashboard", "patients", "admissions", "billing"]);
+      if (!receptionModules.has(normalizedModule)) return false;
+      if (normalizedModule === "dashboard") return normalizedAction === "view";
+      return ["view", "create", "edit", "export"].includes(normalizedAction);
+    }
     if (normalizeSubRoleName(user) === "Reception" && normalizedModule === "patients" && normalizedAction === "delete") return true;
     const allowedPage = normalizedListIncludes(user.allowedPages, normalizedModule) ||
       normalizedListIncludes(user.allowedModules, normalizedModule) ||
