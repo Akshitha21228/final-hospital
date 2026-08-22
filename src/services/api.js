@@ -12,7 +12,7 @@ const LOCAL_USERS = [
   { id: "local-nurse", email: "nurse@hocctest.local", name: "Nurse", role: "BRANCH_USER", jobRole: "Nurse", allowedPages: ["dashboard", "patients", "queue", "vitals", "admissions", "wards", "ipdPatient360", "dailySheets", "nursing", "mar", "ipdVitals", "dutyDoctor", "intakeOutput", "handover", "tasks", "alerts"] },
   { id: "local-lab", email: "lab@hocctest.local", name: "Lab User", role: "BRANCH_USER", jobRole: "Lab User", allowedPages: ["dashboard", "lab", "lab-samples", "lab-processing", "lab-results", "lab-search", "documents", "reports", "alerts", "tasks"] },
   { id: "local-radiology", email: "radiology@hocctest.local", name: "Radiology User", role: "BRANCH_USER", jobRole: "Radiology User", allowedPages: ["dashboard", "radiology", "radiology-scheduling", "radiology-queue", "radiology-imaging", "radiology-results", "radiology-search", "documents", "reports", "alerts", "tasks"] },
-  { id: "local-pharmacy", email: "pharmacy@hocctest.local", name: "Pharmacy User", role: "BRANCH_USER", jobRole: "Pharmacy User", allowedPages: ["dashboard", "pharmacy", "pharmacy-dispensing", "pharmacy-search", "stock", "returns", "alerts", "reports", "tasks"] },
+  { id: "local-pharmacy", email: "pharmacy@hocctest.local", name: "Pharmacy User", role: "BRANCH_USER", jobRole: "Pharmacy User", allowedPages: ["pharmacy", "pharmacy-payments", "pharmacy-dispensing", "stock", "returns"] },
   { id: "local-billing", email: "billing@hocctest.local", name: "Billing User", role: "BRANCH_USER", jobRole: "Billing User", allowedPages: ["dashboard", "billing", "payments", "claims", "ipd-billing", "checkout", "refunds", "billing-search", "reports", "alerts", "tasks"] },
   { id: "local-reception", email: "reception@hocctest.local", name: "Receptionist", role: "BRANCH_USER", jobRole: "Reception User", allowedPages: ["dashboard", "patients", "admissions", "billing"] },
   { id: "local-mortuary", email: "mortuary@hocctest.local", name: "Mortuary Officer", role: "BRANCH_USER", jobRole: "Mortuary Officer", allowedPages: ["dashboard", "mortuary", "mortuary-intake", "mortuary-storage", "mortuary-release", "mortuary-search", "documents", "reports", "alerts", "tasks"] }
@@ -137,6 +137,35 @@ function valueArray(value) {
   return value === undefined || value === null || value === "" ? [] : [value];
 }
 
+function medicineMatchKey(value) {
+  return String(value || "").toLowerCase().replace(/\b(mg|mcg|g|ml|tablet|tablets|capsule|capsules)\b/g, "").replace(/[^a-z0-9]+/g, "").trim();
+}
+
+function stockMatchesPrescriptionItem(item, stock) {
+  const itemIds = [item?.medicineId, item?.productId, item?.inventoryItemId, item?.drugId].filter(Boolean).map(String);
+  const stockIds = [stock?.medicineId, stock?.productId, stock?.inventoryItemId, stock?.drugId].filter(Boolean).map(String);
+  if (itemIds.length && stockIds.length) return itemIds.some((id) => stockIds.includes(id));
+  const itemKeys = [item?.medicine, `${item?.medicine || ""} ${item?.strength || ""}`].map(medicineMatchKey).filter(Boolean);
+  const stockKeys = [stock?.medicine, stock?.medicineName, stock?.productName, `${stock?.medicine || stock?.medicineName || ""} ${stock?.strength || ""}`].map(medicineMatchKey).filter(Boolean);
+  return itemKeys.some((key) => stockKeys.includes(key));
+}
+
+function validPricedStock(item, stocks = []) {
+  const startOfToday = new Date(new Date().toDateString());
+  return stocks.filter((stock) => stockMatchesPrescriptionItem(item, stock))
+    .filter((stock) => Number(stock.quantityAvailable || 0) > 0 && Number(stock.sellingPrice || 0) > 0 && new Date(stock.expiryDate || stock.expiry || 0) >= startOfToday)
+    .sort((a, b) => new Date(a.expiryDate || a.expiry) - new Date(b.expiryDate || b.expiry))[0] || null;
+}
+
+function pricePrescriptionItems(items = [], stocks = []) {
+  return items.map((item) => {
+    const quantity = Math.max(1, Number(item.prescribedQuantity || item.quantity || 1));
+    const stock = validPricedStock(item, stocks);
+    const unitPrice = Number(stock?.sellingPrice || 0);
+    return { ...item, quantity, stockId: stock?.id || stock?._id || "", batchNumber: stock?.batchNumber || "", unitPrice, amount: quantity * unitPrice };
+  });
+}
+
 function consultationPayload(body = {}) {
   const diagnoses = valueArray(body.diagnosis).map((diagnosis, index) => ({
     type: index === 0 ? "Primary" : "Secondary",
@@ -195,6 +224,9 @@ function upsertConsultationOutputs(store, consultation, payload, finalStatus = "
 
 function localRead(path) {
   const cleanPath = path.split("?")[0];
+  if (cleanPath === "/pharmacy/stock") return getCollection("medicineStocks");
+  if (cleanPath === "/pharmacy/stock-transactions") return getCollection("stockTransactions");
+  if (cleanPath === "/pharmacy/returns") return getCollection("pharmacyReturns");
   if (cleanPath.endsWith("/dashboard")) return {};
   if (cleanPath === "/appointment-options" || cleanPath.includes("booking-options")) {
     const branchId = JSON.parse(localStorage.getItem(SESSION_KEY) || "{}").branchId || "local-branch";
@@ -225,6 +257,100 @@ function localRequest(path, options = {}) {
   const store = localStore();
   const cleanPath = path.split("?")[0];
   const pathParts = cleanPath.split("/").filter(Boolean);
+  const pharmacyPrescriptionId = pathParts[0] === "pharmacy" && pathParts[1] === "prescriptions" ? decodeURIComponent(pathParts[2] || "") : "";
+  const pharmacyUser = body.processedBy || body.pharmacist || body.user || "Pharmacy User";
+  if (method === "POST" && pharmacyPrescriptionId && pathParts[3] === "verify") {
+    const prescription = store.prescriptions.find((item) => String(item.id) === pharmacyPrescriptionId);
+    if (!prescription) throw new Error("Prescription could not be found.");
+    if (!["Pending", "PRESCRIBED", "Prescribed"].includes(prescription.status)) throw new Error("Only prescribed items can be verified.");
+    const patient = store.patients.find((item) => String(item.id) === String(prescription.patientId)) || {};
+    const items = (store.prescriptionItems || []).filter((item) => String(item.prescriptionId) === pharmacyPrescriptionId);
+    const pricedItems = pricePrescriptionItems(items, store.medicineStocks || []);
+    const subtotal = pricedItems.reduce((sum, item) => sum + item.amount, 0);
+    const discount = Number(body.discount || 0), tax = Number(body.tax || 0), totalAmount = Math.max(0, subtotal - discount + tax);
+    const now = new Date().toISOString();
+    const existingBill = (store.bills || []).find((item) => String(item.prescriptionId) === pharmacyPrescriptionId);
+    const bill = existingBill || { id: createLocalId("BILL"), billNumber: `BILL-${String((store.bills || []).length + 1).padStart(6, "0")}`, prescriptionId: pharmacyPrescriptionId, patientId: prescription.patientId, patientName: patient.name || prescription.patientName || "Patient", mrn: patient.mrn || prescription.mrn || "", items: pricedItems, subtotal, discount, tax, totalAmount, paidAmount: 0, paymentStatus: "Pending", status: "Draft", branchId: prescription.branchId || body.branchId || "", createdAt: now };
+    if (!existingBill) store.bills.push(bill);
+    store.prescriptions = store.prescriptions.map((item) => String(item.id) === pharmacyPrescriptionId ? { ...item, status: "PENDING_PAYMENT", verifiedAt: now, verifiedBy: pharmacyUser, billId: bill.id, updatedAt: now } : item);
+    saveStore(store);
+    return store.prescriptions.find((item) => String(item.id) === pharmacyPrescriptionId);
+  }
+  if (method === "POST" && pharmacyPrescriptionId && pathParts[3] === "payment") {
+    const prescription = store.prescriptions.find((item) => String(item.id) === pharmacyPrescriptionId);
+    if (!prescription || !["VERIFIED", "PENDING_PAYMENT"].includes(prescription.status)) throw new Error("A verified prescription awaiting payment is required.");
+    const bill = (store.bills || []).find((item) => String(item.id) === String(prescription.billId) || String(item.prescriptionId) === pharmacyPrescriptionId);
+    if (!bill) throw new Error("The linked pharmacy bill could not be found.");
+    const prescriptionItems = (store.prescriptionItems || []).filter((item) => String(item.prescriptionId) === pharmacyPrescriptionId);
+    const pricedItems = pricePrescriptionItems(prescriptionItems, store.medicineStocks || []);
+    if (!pricedItems.length || pricedItems.some((item) => Number(item.unitPrice || 0) <= 0)) throw new Error("Medicine price is not configured. Update Inventory / Stock pricing first.");
+    const subtotal = pricedItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    const discount = Number(bill.discount || 0), tax = Number(bill.tax || 0), totalAmount = Math.max(0, subtotal - discount + tax);
+    Object.assign(bill, { items: pricedItems, subtotal, discount, tax, totalAmount, updatedAt: new Date().toISOString() });
+    const now = new Date().toISOString(), receiptNumber = `RCT-${String((store.payments || []).length + 1).padStart(6, "0")}`;
+    const payment = { id: createLocalId("PAY"), prescriptionId: pharmacyPrescriptionId, billId: bill.id, receiptNumber, amount: Number(bill.totalAmount || 0), method: body.method || "Cash", status: "Paid", branchId: prescription.branchId || "", receivedBy: pharmacyUser, paidAt: now, createdAt: now };
+    store.payments.push(payment);
+    store.bills = store.bills.map((item) => String(item.id) === String(bill.id) ? { ...item, status: "Paid", paymentStatus: "Paid", paidAmount: Number(item.totalAmount || 0), paymentMethod: payment.method, receiptNumber, paidAt: now, updatedAt: now } : item);
+    store.prescriptions = store.prescriptions.map((item) => String(item.id) === pharmacyPrescriptionId ? { ...item, status: "PAID", paymentId: payment.id, receiptNumber, paidAt: now, updatedAt: now } : item);
+    saveStore(store);
+    return payment;
+  }
+  if (method === "POST" && pharmacyPrescriptionId && pathParts[3] === "dispense") {
+    const prescription = store.prescriptions.find((item) => String(item.id) === pharmacyPrescriptionId);
+    if (!prescription || prescription.status !== "PAID") throw new Error("Only paid prescriptions can be dispensed.");
+    const selections = Array.isArray(body.items) ? body.items : [];
+    const prescribedItems = (store.prescriptionItems || []).filter((item) => String(item.prescriptionId) === pharmacyPrescriptionId);
+    if (!prescribedItems.length || selections.length !== prescribedItems.length) throw new Error("Every prescribed medicine requires a batch and dispense quantity.");
+    const now = new Date().toISOString();
+    selections.forEach((selection) => {
+      const item = prescribedItems.find((entry) => String(entry.id) === String(selection.itemId));
+      const batch = (store.medicineStocks || []).find((entry) => String(entry.id) === String(selection.batchId));
+      const quantity = Number(selection.quantity), prescribed = Number(item?.prescribedQuantity || item?.quantity || 1);
+      if (!item || !batch || String(batch.medicine || "").toLowerCase() !== String(item.medicine || "").toLowerCase()) throw new Error("Select a valid batch for each medicine.");
+      if (!Number.isInteger(quantity) || quantity <= 0 || quantity > prescribed) throw new Error("Dispense quantity cannot exceed the prescribed quantity.");
+      if (new Date(batch.expiryDate) < new Date(new Date().toDateString())) throw new Error(`Batch ${batch.batchNumber || batch.id} is expired.`);
+      if (Number(batch.quantityAvailable || 0) < quantity) throw new Error(`Insufficient stock for ${item.medicine}.`);
+    });
+    selections.forEach((selection) => {
+      const item = prescribedItems.find((entry) => String(entry.id) === String(selection.itemId));
+      const batch = store.medicineStocks.find((entry) => String(entry.id) === String(selection.batchId));
+      const quantity = Number(selection.quantity), remaining = Number(batch.quantityAvailable || 0) - quantity;
+      Object.assign(batch, { quantityAvailable: remaining, updatedAt: now });
+      Object.assign(item, { dispensedQuantity: quantity, batchId: batch.id, batchNumber: batch.batchNumber, expiryDate: batch.expiryDate, dispensedAt: now, dispensedBy: pharmacyUser, status: "DISPENSED", updatedAt: now });
+      store.stockTransactions.push({ id: createLocalId("STX"), prescriptionId: pharmacyPrescriptionId, prescriptionItemId: item.id, stockId: batch.id, medicine: item.medicine, batchNumber: batch.batchNumber, type: "DISPENSE", quantity: -quantity, balanceAfter: remaining, processedBy: pharmacyUser, branchId: prescription.branchId || batch.branchId || "", createdAt: now });
+    });
+    store.prescriptions = store.prescriptions.map((item) => String(item.id) === pharmacyPrescriptionId ? { ...item, status: "DISPENSED", dispensedAt: now, dispensedBy: pharmacyUser, updatedAt: now } : item);
+    saveStore(store);
+    return store.prescriptions.find((item) => String(item.id) === pharmacyPrescriptionId);
+  }
+  if (method === "POST" && pharmacyPrescriptionId && pathParts[3] === "return") {
+    const prescription = store.prescriptions.find((item) => String(item.id) === pharmacyPrescriptionId);
+    if (!prescription || !["DISPENSED", "COMPLETED", "PARTIAL_RETURN"].includes(prescription.status)) throw new Error("Only dispensed prescriptions can be returned.");
+    const item = (store.prescriptionItems || []).find((entry) => String(entry.id) === String(body.itemId) && String(entry.prescriptionId) === pharmacyPrescriptionId);
+    const prior = (store.pharmacyReturns || []).filter((entry) => String(entry.prescriptionItemId) === String(body.itemId)).reduce((sum, entry) => sum + Number(entry.quantity || 0), 0);
+    const maximum = Number(item?.dispensedQuantity || 0) - prior, quantity = Number(body.quantity);
+    if (!item || !Number.isInteger(quantity) || quantity <= 0 || quantity > maximum) throw new Error("Return quantity exceeds the maximum returnable quantity.");
+    if (!String(body.reason || "").trim()) throw new Error("Return reason is required.");
+    const now = new Date().toISOString(), saleable = body.condition === "Saleable unopened valid" && new Date(item.expiryDate) >= new Date(new Date().toDateString());
+    const batch = store.medicineStocks.find((entry) => String(entry.id) === String(item.batchId));
+    if (saleable && batch) batch.quantityAvailable = Number(batch.quantityAvailable || 0) + quantity;
+    if (!saleable && batch) batch.quarantineQuantity = Number(batch.quarantineQuantity || 0) + quantity;
+    const returnedTotal = prior + quantity, status = returnedTotal >= Number(item.dispensedQuantity || 0) ? "RETURNED" : "PARTIAL_RETURN";
+    store.pharmacyReturns.push({ id: createLocalId("RET"), prescriptionId: pharmacyPrescriptionId, prescriptionItemId: item.id, receiptNumber: prescription.receiptNumber || "", medicine: item.medicine, quantity, reason: body.reason, condition: body.condition, disposition: saleable ? "SALEABLE_STOCK" : "QUARANTINE", processedBy: pharmacyUser, returnedAt: now, branchId: prescription.branchId || "", createdAt: now });
+    item.returnedQuantity = returnedTotal; item.returnStatus = status; item.updatedAt = now;
+    if (batch) store.stockTransactions.push({ id: createLocalId("STX"), prescriptionId: pharmacyPrescriptionId, prescriptionItemId: item.id, stockId: batch.id, medicine: item.medicine, batchNumber: batch.batchNumber, type: saleable ? "RETURN_TO_STOCK" : "RETURN_TO_QUARANTINE", quantity, balanceAfter: Number(batch.quantityAvailable || 0), processedBy: pharmacyUser, branchId: prescription.branchId || "", createdAt: now });
+    const allItems = store.prescriptionItems.filter((entry) => String(entry.prescriptionId) === pharmacyPrescriptionId);
+    const prescriptionStatus = allItems.every((entry) => Number(entry.returnedQuantity || 0) >= Number(entry.dispensedQuantity || 0)) ? "RETURNED" : "PARTIAL_RETURN";
+    store.prescriptions = store.prescriptions.map((entry) => String(entry.id) === pharmacyPrescriptionId ? { ...entry, status: prescriptionStatus, updatedAt: now } : entry);
+    saveStore(store);
+    return store.pharmacyReturns.at(-1);
+  }
+  if (method === "POST" && cleanPath === "/pharmacy/stock") {
+    const quantity = Number(body.quantityAvailable || body.quantity || 0);
+    if (!body.medicine || !body.batchNumber || !body.expiryDate || !Number.isFinite(quantity) || quantity < 0) throw new Error("Medicine, batch, expiry date, and a valid quantity are required.");
+    const record = { id: createLocalId("STOCK"), ...body, quantityAvailable: quantity, quarantineQuantity: 0, createdAt: new Date().toISOString() };
+    store.medicineStocks.push(record); saveStore(store); return record;
+  }
   if (method === "POST" && cleanPath === "/patients") {
     const duplicate = store.patients.find((item) => (body.mobile && item.mobile === body.mobile) || (body.idProofNumber && item.idProofNumber === body.idProofNumber) || (body.name && body.dob && String(item.name).toLowerCase() === String(body.name).toLowerCase() && item.dob === body.dob));
     if (duplicate && body.duplicateAction !== "create-new-anyway") throw new Error("Possible existing patient found. Use the existing patient or review the patient record.");
@@ -774,6 +900,17 @@ export function createProductionApiClient() {
     generateBill: (user, payload = {}) => requestBackend("/bills/generate", { method: "POST", body: { ...payload, branchId: payload.branchId || user?.branchId || "", createdBy: user?.id || user?.email || "" } }),
     addMedicineStock: post("/pharmacy/stock"),
     issuePharmacy: (_user, issueId) => requestBackend("/pharmacy/issue", { method: "POST", body: { issueId } }),
+    verifyPharmacyPrescription: (user, prescriptionId, payload = {}) => requestBackend(`/pharmacy/prescriptions/${encodeURIComponent(prescriptionId)}/verify`, { method: "POST", body: { ...payload, pharmacist: user?.name || user?.email || "Pharmacy User", branchId: user?.branchId || "" } }),
+    payPharmacyPrescription: (user, prescriptionId, payload = {}) => {
+      const body = { ...payload, prescriptionId, processedBy: user?.name || user?.email || "Pharmacy User" };
+      if (getApiMode() === "local") return requestBackend(`/pharmacy/prescriptions/${encodeURIComponent(prescriptionId)}/payment`, { method: "POST", body });
+      if (!payload.billId) throw new Error("The verified prescription has no linked bill.");
+      return requestBackend(`/bills/${encodeURIComponent(payload.billId)}/payment`, { method: "POST", body });
+    },
+    dispensePharmacyPrescription: (user, prescriptionId, payload = {}) => requestBackend(`/pharmacy/prescriptions/${encodeURIComponent(prescriptionId)}/dispense`, { method: "POST", body: { ...payload, pharmacist: user?.name || user?.email || "Pharmacy User" } }),
+    returnPharmacyItem: (user, prescriptionId, payload = {}) => requestBackend(`/pharmacy/prescriptions/${encodeURIComponent(prescriptionId)}/return`, { method: "POST", body: { ...payload, processedBy: user?.name || user?.email || "Pharmacy User" } }),
+    pharmacyStockTransactions: () => cachedRead("/pharmacy/stock-transactions", []),
+    pharmacyReturns: () => cachedRead("/pharmacy/returns", []),
     collectPayment: (_user, billId, payload = {}) => requestBackend(`/bills/${encodeURIComponent(billId)}/payment`, { method: "POST", body: payload }),
     createRazorpayOrder: (_user, billId) => requestBackend(`/bills/${encodeURIComponent(billId)}/razorpay-order`, { method: "POST" }),
     verifyRazorpayPayment: (_user, billId, payload = {}) => requestBackend(`/bills/${encodeURIComponent(billId)}/razorpay-verify`, { method: "POST", body: payload }),

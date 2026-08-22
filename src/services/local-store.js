@@ -2,7 +2,7 @@ export const LOCAL_STORE_KEY = "hospital_operations_data";
 export const LOCAL_STORE_VERSION = 1;
 const LEGACY_STORE_KEY = "hocc_frontend_data_v1";
 
-const COLLECTIONS = ["patients", "appointments", "queueTokens", "vitals", "consultations", "prescriptions", "prescriptionItems", "labOrders", "radiologyOrders", "admissionRecommendations", "admissions", "bills", "payments", "checkouts", "followUps", "notifications", "tasks", "alerts", "wards", "rooms", "beds", "masterDataItems", "dailyPatientSheets", "doctorProgressNotes", "dutyDoctorNotes", "nursingNotes", "ipdVitals", "medicationRecords", "intakeOutput", "doctorHandovers"];
+const COLLECTIONS = ["patients", "appointments", "queueTokens", "vitals", "consultations", "prescriptions", "prescriptionItems", "labOrders", "radiologyOrders", "admissionRecommendations", "admissions", "bills", "payments", "checkouts", "followUps", "notifications", "tasks", "alerts", "wards", "rooms", "beds", "masterDataItems", "dailyPatientSheets", "doctorProgressNotes", "dutyDoctorNotes", "nursingNotes", "ipdVitals", "medicationRecords", "intakeOutput", "doctorHandovers", "medicineStocks", "stockTransactions", "pharmacyReturns"];
 
 const LOCAL_DEPARTMENTS = ["General Medicine", "Cardiology", "Pediatrics", "Orthopaedics"].map((name, index) => ({
   id: `local-department-${index + 1}`,
